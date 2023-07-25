@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
-project(OpenGLTemplate CXX)
+include(CMakePrintHelpers)
+project(Gragzo CXX)
 
 #===========================================================================================
 # OPTIONAL LIBRARiES
@@ -9,6 +10,7 @@ project(OpenGLTemplate CXX)
 # See: https://github.com/Hoshiningen/OpenGL-Template/issues
 
 set(ENABLE_ASSIMP   ON CACHE BOOL "Add Open Asset Import Library (assimp) to the project" FORCE)
+set(exe_name "gz")
 
 #===========================================================================================
 # GLAD CONFIGURATION
@@ -33,24 +35,36 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set directory paths
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/source)
+set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-set(sources ${SOURCE_DIR}/main.cpp)
+# set(sources ${SOURCE_DIR}/main.cpp)
+# set(sources ${SOURCE_DIR}/utils.cpp)
+file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "source/*.cpp" "include/*.hpp")
+# file(GLOB_RECURSE includes RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "include/*.h")
+include_directories(${INCLUDE_DIR})
 
-add_executable(opengl-template ${sources} ${includes})
+# cmake_print_variables(sources)
+
+add_executable(${exe_name} ${sources})
+
+
 
 # Perform dependency linkage
 include(${CMAKE_DIR}/LinkGLFW.cmake)
-LinkGLFW(opengl-template PRIVATE)
+LinkGLFW(${exe_name} PRIVATE)
+
+include(${CMAKE_DIR}/LinkGLM.cmake)
+LinkGLM(${exe_name} PRIVATE)
 
 include(${CMAKE_DIR}/LinkGLAD.cmake)
-LinkGLAD(opengl-template PRIVATE)
+LinkGLAD(${exe_name} PRIVATE)
 
 find_package(OpenGL REQUIRED)
 if (OpenGL_FOUND)
-    target_include_directories(opengl-template PRIVATE ${OPENGL_INCLDUE_DIRS})
-    target_link_libraries(opengl-template PRIVATE ${OPENGL_LIBRARIES})
+    target_include_directories(${exe_name} PRIVATE ${OPENGL_INCLDUE_DIRS})
+    target_link_libraries(${exe_name} PRIVATE ${OPENGL_LIBRARIES})
 else()
     message(FATAL_ERROR "OpenGL was not found on the system")
 endif()
@@ -58,14 +72,14 @@ endif()
 # Handle the optional libraries
 if (${ENABLE_ASSIMP})
     include(${CMAKE_DIR}/LinkASSIMP.cmake)
-    LinkASSIMP(opengl-template PRIVATE)
+    LinkASSIMP(${exe_name} PRIVATE)
 endif()
 
 # Enable C++17
-set_target_properties(opengl-template PROPERTIES
+set_target_properties(${exe_name} PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO)
 
 # Set project folders
-set_target_properties(opengl-template PROPERTIES FOLDER ${PROJECT_NAME})
+set_target_properties(${exe_name} PROPERTIES FOLDER ${PROJECT_NAME})
