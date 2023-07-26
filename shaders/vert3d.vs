@@ -1,8 +1,12 @@
-#version 330 core
+#version 460 core
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
+layout (location = 1) in vec3 normal;
+layout (location = 2) in vec3 aColor;
 
 out vec3 ourColor;
+out vec3 fragnormal;
+out vec3 camPos;
+
 
 uniform mat4 model;
 uniform mat4 view;
@@ -12,5 +16,12 @@ uniform mat4 projection;
 void main()
 {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
+
+    vec4 position = view * model * vec4(aPos, 1.0);
+    camPos = vec3(position)/position.w;
+
     ourColor = aColor;
+    fragnormal = vec3(transpose(inverse(view * model)) * vec4(normal,0.0));
+
+
 }

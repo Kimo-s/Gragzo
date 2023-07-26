@@ -83,6 +83,14 @@
         "__tuple": "cpp",
         "filesystem": "cpp",
         "__split_buffer": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "any": "cpp",
+        "charconv": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "cuchar": "cpp",
+        "future": "cpp",
+        "scoped_allocator": "cpp",
+        "valarray": "cpp"
     }
 }

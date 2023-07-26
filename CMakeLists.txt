@@ -10,7 +10,7 @@ project(Gragzo CXX)
 # See: https://github.com/Hoshiningen/OpenGL-Template/issues
 
 set(ENABLE_ASSIMP   ON CACHE BOOL "Add Open Asset Import Library (assimp) to the project" FORCE)
-set(exe_name "gz")
+set(exe_name "run")
 
 #===========================================================================================
 # GLAD CONFIGURATION
@@ -41,7 +41,7 @@ set(CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # set(sources ${SOURCE_DIR}/main.cpp)
 # set(sources ${SOURCE_DIR}/utils.cpp)
-file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "source/*.cpp" "include/*.hpp")
+file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "source/*.cpp" "include/*.hpp" "include/*.h")
 # file(GLOB_RECURSE includes RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "include/*.h")
 include_directories(${INCLUDE_DIR})
 

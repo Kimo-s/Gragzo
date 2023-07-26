@@ -1,3 +1,4 @@
+#pragma once
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -8,10 +9,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-struct Vertex{
-    glm::vec3 pos;
-    glm::vec3 col;
-};
 
 class Shader{
 public:

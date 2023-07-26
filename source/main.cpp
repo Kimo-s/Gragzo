@@ -22,6 +22,7 @@ float Yaw   = -90.0f;
 float Pitch = 0.0f;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 void processInput(GLFWwindow* window)
 {
@@ -32,8 +33,8 @@ void processInput(GLFWwindow* window)
 int main()
 {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
@@ -48,6 +49,7 @@ int main()
 
     glfwMakeContextCurrent(window);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, mouse_scroll_callback);
 
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 
@@ -67,39 +69,24 @@ int main()
     Shader shader("../shaders/vert3d.vs", "../shaders/frag3d.fs");
 
 
-    Vertex data[] = {
-        Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(1.0, 0.0, 0.0)},
-        Vertex{glm::vec3(0.5f, -0.8f, 0.0f), glm::vec3(0.0, 1.0, 0.0)},
-        Vertex{glm::vec3(0.0f,  0.9f, 0.0f), glm::vec3(0.0, 0.0, 1.0)}
-    };
+    Mesh bunny("../bunny.obj");
 
+    SoftBody obj("../bunny.obj");
 
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    // // position attribute
-    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)offsetof(Vertex, col));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
 
     
+
     // This is the render loop
+    // float curTime = glfwGetTime();
+    float lastFrameTime = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
         // Clear the screen
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
 
@@ -112,15 +99,18 @@ int main()
         glm::mat4 modelMat = glm::mat4(1.0f);
         shader.setMat4("model", modelMat);
 
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        float dt = glfwGetTime() - lastFrameTime;
+
+        obj.draw();
+        // bunny.draw();
+        obj.simulateTimeStep(dt);
+
+        lastFrameTime = glfwGetTime();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
     shader.terminate();
 
     glfwTerminate();
@@ -130,7 +120,14 @@ int main()
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
+        leftMouseHeld = false;
         return;
+    }
+
+    if(leftMouseHeld == false) {
+        leftMouseHeld = true;
+        lastX = xpos;
+        lastY = ypos;
     }
 
     xpos = static_cast<float>(xpos);
@@ -143,7 +140,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
         firstMouse = false;
     }
 
-    float xoffset = xpos - lastX;
+    float xoffset = lastX - xpos;
     float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
     lastX = xpos;
@@ -152,7 +149,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     xoffset *= 0.2;
     yoffset *= 0.2;
 
-    Yaw   -= xoffset;
+    Yaw   += xoffset;
     Pitch += yoffset;
 
     // make sure that when pitch is out of bounds, screen doesn't get flipped
@@ -161,14 +158,20 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     if (Pitch < -89.0f)
         Pitch = -89.0f;
 
-    float camposr = cameraPos.length();
+    float camposr = glm::length(cameraPos);
     cameraPos.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
     cameraPos.y = sin(glm::radians(Pitch));
     cameraPos.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
     cameraPos = camposr * glm::normalize(cameraPos);
-    // cameraFront = glm::normalize(cameraFront);
     cameraFront = -glm::normalize(cameraPos);
 
     glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
     cameraUp = glm::normalize(glm::cross(right, cameraFront));
+}
+
+
+
+void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    cameraPos = (glm::length(cameraPos) + static_cast<float>(yoffset) * 0.1f) * glm::normalize(cameraPos);
 }
