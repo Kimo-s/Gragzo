@@ -3,7 +3,7 @@
 #include <iostream>
 #include <memory>
 #include "shader.hpp"
-#include "mesh.h"
+#include "mesh.hpp"
 
 
 void testheader();

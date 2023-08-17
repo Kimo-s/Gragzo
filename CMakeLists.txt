@@ -9,7 +9,7 @@ project(Gragzo CXX)
 # desired options on. Open an issue for additional default support.
 # See: https://github.com/Hoshiningen/OpenGL-Template/issues
 
-set(ENABLE_ASSIMP   ON CACHE BOOL "Add Open Asset Import Library (assimp) to the project" FORCE)
+set(ENABLE_ASSIMP   OFF CACHE BOOL "Add Open Asset Import Library (assimp) to the project" FORCE)
 set(exe_name "run")
 
 #===========================================================================================
@@ -41,14 +41,14 @@ set(CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # set(sources ${SOURCE_DIR}/main.cpp)
 # set(sources ${SOURCE_DIR}/utils.cpp)
-file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "source/*.cpp" "include/*.hpp" "include/*.h")
+file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} source/*.cpp include/*.hpp include/*.h include/external/imgui/*.h)
 # file(GLOB_RECURSE includes RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "include/*.h")
-include_directories(${INCLUDE_DIR})
+# include_directories(${INCLUDE_DIR})
 
 # cmake_print_variables(sources)
 
 add_executable(${exe_name} ${sources})
-
+target_include_directories(${exe_name} PUBLIC ${INCLUDE_DIR} PUBLIC ${INCLUDE_DIR}/external ${INCLUDE_DIR}/external/imgui)
 
 
 # Perform dependency linkage
@@ -70,10 +70,10 @@ else()
 endif()
 
 # Handle the optional libraries
-if (${ENABLE_ASSIMP})
-    include(${CMAKE_DIR}/LinkASSIMP.cmake)
-    LinkASSIMP(${exe_name} PRIVATE)
-endif()
+# if (${ENABLE_ASSIMP})
+#     include(${CMAKE_DIR}/LinkASSIMP.cmake)
+#     LinkASSIMP(${exe_name} PRIVATE)
+# endif()
 
 # Enable C++17
 set_target_properties(${exe_name} PROPERTIES

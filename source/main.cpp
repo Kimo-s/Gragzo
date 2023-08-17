@@ -1,14 +1,23 @@
 #include <iostream>
 #include "gragzo.hpp"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "gui_parameters.hpp"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
+#include <sstream>
+
+
+gui_parameters guiParameters;
 
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
+float targetFPS = 60.0;
 
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
+glm::vec3 cameraPos   = glm::vec3(3.0f, 0.0f,  5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
@@ -30,6 +39,23 @@ void processInput(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 }
 
+void guiSetup(GLFWwindow* window, ImGuiIO& io){
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+
+    ImGui::Begin("Controls");
+
+    ImGui::SliderFloat("Complaince", &guiParameters.complaince, 0.0f, 0.2f); 
+
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::End();
+
+    ImGui::Render();
+}
+
 int main()
 {
     glfwInit();
@@ -37,6 +63,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+ 
 
 
     // Construct the window
@@ -66,12 +93,40 @@ int main()
         glViewport(0, 0, width, height);
     });
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 460");
+
+
+
     Shader shader("../shaders/vert3d.vs", "../shaders/frag3d.fs");
 
+    std::vector<Vertex> vertices = {
+     Vertex{glm::vec3(0.5f,  0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+     Vertex{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+     Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+     Vertex{glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+     Vertex{glm::vec3(1.0f,  0.5f, 1.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+    }; 
 
-    Mesh bunny("../bunny.obj");
+    std::vector<uint>  indices = {  // note that we start from 0!
+        0, 1, 3,  // first triangle
+        1, 2, 3    // second triangle
+    };
 
-    SoftBody obj("../bunny.obj");
+
+    // Mesh bunny("../bunny.obj");
+
+    SoftBody obj("../sphere.obj");
+    // SoftBody obj(vertices, indices);
+
 
     glEnable(GL_DEPTH_TEST);
 
@@ -84,13 +139,16 @@ int main()
     {
         processInput(window);
 
+        guiSetup(window, io);
+
+
         // Clear the screen
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
 
-        glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 300.0f);
         shader.setMat4("projection", projMat);
 
         glm::mat4 viewMat = glm::lookAt(cameraPos, cameraFront, cameraUp);
@@ -101,12 +159,26 @@ int main()
 
         float dt = glfwGetTime() - lastFrameTime;
 
+
         obj.draw();
-        // bunny.draw();
-        obj.simulateTimeStep(dt);
+        obj.simulateTimeStep(1.0/targetFPS);
+
 
         lastFrameTime = glfwGetTime();
 
+
+        float fps = 1.0/dt;
+        std::stringstream ss;
+        ss << "Gragzp (fps:" << fps << ")";
+
+        while(fps > targetFPS) {
+            float dt2 = glfwGetTime() - lastFrameTime;
+            fps = 1.0/dt2;
+        }
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSetWindowTitle(window, ss.str().c_str());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -149,14 +221,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     xoffset *= 0.2;
     yoffset *= 0.2;
 
-    Yaw   += xoffset;
-    Pitch += yoffset;
+    Yaw   += yoffset;
+    Pitch += xoffset;
 
     // make sure that when pitch is out of bounds, screen doesn't get flipped
-    if (Pitch > 89.0f)
-        Pitch = 89.0f;
-    if (Pitch < -89.0f)
-        Pitch = -89.0f;
+    // if (Pitch > 89.0f)
+    //     Pitch = 89.0f;
+    // if (Pitch < -89.0f)
+    //     Pitch = -89.0f;
 
     float camposr = glm::length(cameraPos);
     cameraPos.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));

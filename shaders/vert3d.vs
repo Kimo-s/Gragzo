@@ -6,6 +6,7 @@ layout (location = 2) in vec3 aColor;
 out vec3 ourColor;
 out vec3 fragnormal;
 out vec3 camPos;
+out mat4 viewMat;
 
 
 uniform mat4 model;
@@ -20,8 +21,8 @@ void main()
     vec4 position = view * model * vec4(aPos, 1.0);
     camPos = vec3(position)/position.w;
 
+    viewMat = view;
+
     ourColor = aColor;
     fragnormal = vec3(transpose(inverse(view * model)) * vec4(normal,0.0));
-
-
 }
