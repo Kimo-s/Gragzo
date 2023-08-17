@@ -222,7 +222,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     yoffset *= 0.2;
 
     Yaw   += yoffset;
-    Pitch += xoffset;
+    Pitch -= xoffset;
 
     // make sure that when pitch is out of bounds, screen doesn't get flipped
     // if (Pitch > 89.0f)
@@ -231,8 +231,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     //     Pitch = -89.0f;
 
     float camposr = glm::length(cameraPos);
-    cameraPos.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    cameraPos.y = sin(glm::radians(Pitch));
+    cameraPos.x = sin(glm::radians(Yaw)) * sin(glm::radians(Pitch));
+    cameraPos.y = cos(glm::radians(Yaw));
     cameraPos.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
     cameraPos = camposr * glm::normalize(cameraPos);
     cameraFront = -glm::normalize(cameraPos);
