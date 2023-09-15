@@ -4,6 +4,7 @@
 #include <memory>
 #include "shader.hpp"
 #include "mesh.hpp"
+#include "SoftBody.hpp"
 
 
 void testheader();

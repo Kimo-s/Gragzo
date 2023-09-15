@@ -2,47 +2,43 @@
 
 
 #include <mesh.hpp>
+#include <SoftBody.hpp>
 #include <gragzo.hpp>
 #include "OBJ_Loader.h"
 #include "tiny_obj_loader.h"
 #include "gui_parameters.hpp"
 #include <glm/vec3.hpp>
 #include <glm/common.hpp>
+#include <cassert>
 
+void distanceConstraintSolve(glm::vec3& x1, glm::vec3& x2, float& lagrange, float compliance, float m, float l0, float dt){
+    
+    glm::vec3 dir = x1 - x2;
+    float c = glm::length(dir) - l0;
+
+    float w = 1.0/m;
+
+    float alpha = compliance/(dt*dt);
+    float delta_lagrange = (-c - lagrange * alpha) / (2.0*w + alpha);
+    glm::vec3 v = delta_lagrange * dir / (glm::length(dir) + 1e-5f);
+    lagrange += delta_lagrange;
+
+    x1 += w*v;
+    x2 += -w*v;
+}
 
 void jointDistanceConstraint(SoftBody& obj, float dt, int solverIterations, float stif){
 
     for(int i = 0; i < obj.numOfVerts; i++){
         uint x1 = i;
 
-        if(obj.edgeConnections[i].size() == 0) {
-            continue;
-        }
-
-
         std::unordered_map<uint, float>::iterator itr;
         for(itr = obj.edgeConnections[i].begin(); itr != obj.edgeConnections[i].end(); itr++){
             float lagrange = 0.0;
+            float l0 = itr->second;
+            uint x2 = itr->first;
             for(int s = 0; s < solverIterations; s++){
-
-                float l0 = itr->second;
-                uint x2 = itr->first;
-
-                float c = glm::length(obj.verts[x1].pos - obj.verts[x2].pos) - l0;
-                glm::vec3 n = glm::normalize(obj.verts[x1].pos - obj.verts[x2].pos);
-
-                float w = 1.0/obj.particalMass;
-                
-                float alpha = stif/(dt*dt);
-                float delta_lagrange = -(c + lagrange * alpha) / (2.0*w + alpha);
-
-                lagrange += delta_lagrange;
-                obj.verts[x1].pos += w*n*delta_lagrange; 
-                obj.verts[x2].pos += w*-n*delta_lagrange;
-                // if(!isnan(n.z)) {
-                    // std::cout << s << ", " << c << ", " << delta_lagrange << " Solving edge: (" << i << " " << itr->first << ")" << std::endl;
-                // }
-                
+                distanceConstraintSolve(obj.verts[x1].pos, obj.verts[x2].pos, lagrange, stif, obj.particalMass, l0, dt);    
             }
 
         }
@@ -82,74 +78,47 @@ Mesh::Mesh(const char* filename) {
     std::cout << "size of verts: " << attrib.vertices.size() << std::endl;
     // numOfVerts = shapes[0].mesh.num_face_vertices.size() * 3;
 
+    verts.resize(attrib.vertices.size()/3);
+
     // Loop over shapes
-    for (size_t s = 0; s < shapes.size(); s++) {
-        // Loop over faces(polygon)
-        size_t index_offset = 0;
-        for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-            size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
+    // Loop over faces(polygon)
+    size_t index_offset = 0;
+    for (size_t f = 0; f < shapes[0].mesh.num_face_vertices.size(); f++) {
+        size_t fv = size_t(shapes[0].mesh.num_face_vertices[f]);
 
-            Triangle trian;
-            Triangle connectvityTriangle;
+        Triangle trian;
 
-            // Loop over vertices in the face.
-            for (size_t v = 0; v < fv; v++) {
-                // access to vertex
-                tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+        // Loop over vertices in the face.
+        for (size_t v = 0; v < fv; v++) {
+            // access to vertex
+            tinyobj::index_t idx = shapes[0].mesh.indices[index_offset + v];
 
-                // trian.inds[0] = 3*size_t(idx.vertex_index)+0;
-                // trian.inds[1] = 3*size_t(idx.vertex_index)+1;
-                // trian.inds[2] = 3*size_t(idx.vertex_index)+2;
 
-                trian.inds[v] = size_t(idx.vertex_index);
-                connectvityTriangle.inds[v] = size_t(idx.vertex_index);
+            trian.inds[v] = size_t(idx.vertex_index);
 
-                // Vertex vert;
+            tinyobj::real_t vx = attrib.vertices[3*size_t(idx.vertex_index)+0];
+            tinyobj::real_t vy = attrib.vertices[3*size_t(idx.vertex_index)+1];
+            tinyobj::real_t vz = attrib.vertices[3*size_t(idx.vertex_index)+2];
+            verts[size_t(idx.vertex_index)].pos = glm::vec3(vx, vy, vz);
 
-                // tinyobj::real_t vx = attrib.vertices[3*size_t(idx.vertex_index)+0];
-                // tinyobj::real_t vy = attrib.vertices[3*size_t(idx.vertex_index)+1];
-                // tinyobj::real_t vz = attrib.vertices[3*size_t(idx.vertex_index)+2];
-                // vert.pos = glm::vec3(vx, vy, vz);
-
-                // if (idx.normal_index >= 0) {
-                //     tinyobj::real_t nx = attrib.normals[3*size_t(idx.normal_index)+0];
-                //     tinyobj::real_t ny = attrib.normals[3*size_t(idx.normal_index)+1];
-                //     tinyobj::real_t nz = attrib.normals[3*size_t(idx.normal_index)+2];
-                //     vert.normal = glm::vec3(nx, ny, nz);
-                // } else {
-                //     vert.normal = glm::vec3(1.0, 0.0, 1.0);
-                // }
-
-                // vert.col = glm::vec3(1.0, 0.0, 0.0);
-            }
-            triangleArr.push_back(trian);
-            connectivity.push_back(connectvityTriangle);
-
-            index_offset += fv;
-        }
-
-        for(int p = 0; p < attrib.vertices.size()/3; p++){
-            Vertex vert;
-            tinyobj::real_t vx = attrib.vertices[3*p+0];
-            tinyobj::real_t vy = attrib.vertices[3*p+1];
-            tinyobj::real_t vz = attrib.vertices[3*p+2];
-            vert.pos = glm::vec3(vx, vy, vz);
-
-            if(3*p+2 <= attrib.normals.size()){
-                tinyobj::real_t nx = attrib.normals[3*p+0];
-                tinyobj::real_t ny = attrib.normals[3*p+1];
-                tinyobj::real_t nz = attrib.normals[3*p+2];
-                vert.normal = glm::vec3(nx, ny, nz);
+            if (idx.normal_index >= 0) {
+                tinyobj::real_t nx = attrib.normals[3*size_t(idx.normal_index)+0];
+                tinyobj::real_t ny = attrib.normals[3*size_t(idx.normal_index)+1];
+                tinyobj::real_t nz = attrib.normals[3*size_t(idx.normal_index)+2];
+                verts[size_t(idx.vertex_index)].normal = glm::vec3(nx, ny, nz);
             } else {
-                vert.normal = glm::vec3(1.0, 0.0, 1.0);
+                verts[size_t(idx.vertex_index)].normal = glm::vec3(1.0, 0.2, 0.0);
             }
-            
 
-            vert.col = glm::vec3(1.0, 0.0, 0.0);
-            verts.push_back(vert);
+            verts[size_t(idx.vertex_index)].col = glm::vec3(1.0, 0.0, 0.0);
+
+
         }
+        triangleArr.push_back(trian);
 
+        index_offset += fv;
     }
+
 
     numOfTrians = triangleArr.size();
     numOfVerts = verts.size();
@@ -207,7 +176,7 @@ void Mesh::updateBuffers(){
 
 
 SoftBody::SoftBody(const char* filename) : PhysicalObject(filename) {
-    printTriangleArray();
+    // printTriangleArray();
     initSoftBody();
 }
 
@@ -248,7 +217,7 @@ void SoftBody::initSoftBody() {
     // std::cout << " [Number of vertices: " << numOfVerts << "]"
     //           << " [Number of triangles: " << numOfTrians << "]" << std::endl;
     std::cout << "Loaded soft body edge size: " << edgeConnections[3].size() << "\n";
-    printEdges();
+    // printEdges();
     // printTriangleArray();
     // printVertices();
 }
@@ -257,8 +226,8 @@ void SoftBody::initSoftBody() {
 void SoftBody::simulateTimeStep(float dt) {
     glm::vec3 *prevPos;
     prevPos = new glm::vec3[numOfVerts];
-    int solveriterations = 2;
-    int subiterations = 20;
+    int solveriterations = 1;
+    int subiterations = 200;
     float dts = dt/subiterations;
 
 
@@ -268,38 +237,40 @@ void SoftBody::simulateTimeStep(float dt) {
     for(int subiter = 0; subiter < subiterations; subiter++){
 
         for(int i = 0; i < numOfVerts; i++){
-            velocities[i] += dts*glm::vec3(0.0,0.0,-7.8);
+            velocities[i] += dts*glm::vec3(0.0,0.0,-9.8);
             prevPos[i] = verts[i].pos;
             verts[i].pos += dts*velocities[i];
 
 
             glm::vec3 n(1.0, 0.0, 1.0);
             // if(glm::dot(verts[i].pos, n) < 0.0){
-                // verts[i].pos = prevPos[i];
-                // prevPos[i] = verts[i].pos;
+            //     verts[i].pos = prevPos[i];
+            //     prevPos[i] = verts[i].pos;
             // }
 
             if(verts[i].pos.z < -2.0){
                 verts[i].pos = prevPos[i];
                 // prevPos[i].z = -2.0;
-                verts[i].pos.z = -2.0;
+                // verts[i].pos.z = -2.0;
             }
 
         }
 
-        // std::cout << "Before: " << verts[0].pos.x << std::endl;
         jointDistanceConstraint(*this, dts, solveriterations, guiParameters.complaince);
-        // std::cout << "After: " << verts[0].pos.x << std::endl;
 
         for(int i = 0; i < numOfVerts; i++){
-            velocities[i] = (verts[i].pos - prevPos[i])/dts; 
-            
-            // std::cout << "At " << i << ": " << glm::length(verts[i].pos - prevPos[i]) << std::endl;
+            glm::vec3 vel = (verts[i].pos - prevPos[i])/dts; 
+
             if(isnan(glm::length(verts[i].pos - prevPos[i]))){
-                exit(1);
+                std::cout << "Nan velocity!\n";
+                exit(1);       
             }
+            
         }
+
     }
+
+
 
 
     updateBuffers();

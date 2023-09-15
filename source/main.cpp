@@ -15,7 +15,7 @@ gui_parameters guiParameters;
 
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
-float targetFPS = 60.0;
+float targetFPS = 30.0;
 
 glm::vec3 cameraPos   = glm::vec3(3.0f, 0.0f,  5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -47,7 +47,7 @@ void guiSetup(GLFWwindow* window, ImGuiIO& io){
 
     ImGui::Begin("Controls");
 
-    ImGui::SliderFloat("Complaince", &guiParameters.complaince, 0.0f, 0.2f); 
+    ImGui::SliderFloat("Complaince", &guiParameters.complaince, 0.0f, 3.2f); 
 
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -59,8 +59,8 @@ void guiSetup(GLFWwindow* window, ImGuiIO& io){
 int main()
 {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
  
@@ -102,7 +102,7 @@ int main()
     ImGui::StyleColorsDark();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 460");
+    ImGui_ImplOpenGL3_Init("#version 330");
 
 
 
@@ -205,15 +205,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     xpos = static_cast<float>(xpos);
     ypos = static_cast<float>(ypos);
 
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
     float xoffset = lastX - xpos;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    float yoffset = ypos - lastY; // reversed since y-coordinates go from bottom to top
 
     lastX = xpos;
     lastY = ypos;
@@ -222,18 +215,18 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     yoffset *= 0.2;
 
     Yaw   += yoffset;
-    Pitch -= xoffset;
+    Pitch += xoffset;
 
-    // make sure that when pitch is out of bounds, screen doesn't get flipped
+    // // make sure that when pitch is out of bounds, screen doesn't get flipped
     // if (Pitch > 89.0f)
     //     Pitch = 89.0f;
     // if (Pitch < -89.0f)
     //     Pitch = -89.0f;
 
     float camposr = glm::length(cameraPos);
-    cameraPos.x = sin(glm::radians(Yaw)) * sin(glm::radians(Pitch));
-    cameraPos.y = cos(glm::radians(Yaw));
-    cameraPos.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+    cameraPos.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+    cameraPos.y = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+    cameraPos.z = sin(glm::radians(Pitch));
     cameraPos = camposr * glm::normalize(cameraPos);
     cameraFront = -glm::normalize(cameraPos);
 
@@ -245,5 +238,5 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    cameraPos = (glm::length(cameraPos) + static_cast<float>(yoffset) * 0.1f) * glm::normalize(cameraPos);
+    cameraPos = (glm::length(cameraPos) + static_cast<float>(-yoffset) * 0.4f) * glm::normalize(cameraPos);
 }
