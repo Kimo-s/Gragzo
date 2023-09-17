@@ -1,23 +1,14 @@
 #pragma once
 #include <mesh.hpp>
 #include <vector>
+#include <shader.hpp>
 
 
-class PhysicalObject : public Mesh{
-    public:
-    PhysicalObject(){}
-    PhysicalObject(const char* filename) : Mesh(filename){};
-    // ~PhysicalObject(){}
-
-
-    virtual void simulateTimeStep(float dt) = 0;
-
-};
 
 class SoftBody : public PhysicalObject {
     public:
 
-    SoftBody(const char* filename);
+    SoftBody(const char* filename, Shader& shader);
 
     void initSoftBody();
 

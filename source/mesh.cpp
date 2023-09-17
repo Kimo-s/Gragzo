@@ -47,7 +47,7 @@ void jointDistanceConstraint(SoftBody& obj, float dt, int solverIterations, floa
 
 }
 
-Mesh::Mesh(const char* filename) {
+Mesh::Mesh(const char* filename, Shader &shader) {
     // objl::Loader loader;
     // if(!loader.LoadFile(filename)){
     //     std::cerr << "Error: unable to load the file\n";
@@ -123,6 +123,8 @@ Mesh::Mesh(const char* filename) {
     numOfTrians = triangleArr.size();
     numOfVerts = verts.size();
 
+    shaderProgram = &shader;
+
     std::cout << "Loaded mesh from " << filename 
               << " [Number of vertices: " << numOfVerts << "]"
               << " [Number of triangles: " << numOfTrians << "]" << std::endl;
@@ -175,7 +177,7 @@ void Mesh::updateBuffers(){
 }
 
 
-SoftBody::SoftBody(const char* filename) : PhysicalObject(filename) {
+SoftBody::SoftBody(const char* filename, Shader &shader) : PhysicalObject(filename, shader) {
     // printTriangleArray();
     initSoftBody();
 }

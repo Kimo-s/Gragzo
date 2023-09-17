@@ -5,6 +5,7 @@
 #include <utility>
 #include <bits/stdc++.h>
 #include <glm/vec3.hpp>
+#include <shader.hpp>
 
 
 
@@ -39,15 +40,18 @@ struct hash_indicies {
 class Mesh {
     public:
 
-    Mesh(){};
+    Mesh(){}
 
-    Mesh(const char* filename);
+    Mesh(const char* filename, Shader &shader);
 
     ~Mesh();
 
     void setupMesh();
 
     void draw() {
+        shaderProgram->use();
+        shaderProgram->setMat4("model", modelMat);
+
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, numOfTrians*3, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
@@ -77,7 +81,9 @@ class Mesh {
 
 
     GLuint VAO, VBO, EBO;
+    Shader *shaderProgram;
     size_t numOfVerts, numOfTrians;
+    glm::mat4 modelMat = glm::mat4(1.0f);
     std::vector<Vertex> verts;
     std::vector<Triangle> triangleArr;
     std::vector<Triangle> connectivity;
@@ -86,3 +92,13 @@ class Mesh {
 
 
 
+class PhysicalObject : public Mesh{
+    public:
+    PhysicalObject(){}
+    PhysicalObject(const char* filename, Shader& shader) : Mesh(filename, shader){};
+    // ~PhysicalObject(){}
+
+
+    virtual void simulateTimeStep(float dt) = 0;
+
+};

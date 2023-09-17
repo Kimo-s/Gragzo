@@ -15,9 +15,9 @@ gui_parameters guiParameters;
 
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
-float targetFPS = 30.0;
+float targetFPS = 60.0;
 
-glm::vec3 cameraPos   = glm::vec3(3.0f, 0.0f,  5.0f);
+glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
@@ -124,7 +124,15 @@ int main()
 
     // Mesh bunny("../bunny.obj");
 
-    SoftBody obj("../sphere.obj");
+    // SoftBody obj("../sphere.obj", shader);
+    // RigidBody obj("../cube.obj", shader);
+    std::shared_ptr<PhysicalObject> obj = std::make_shared<RigidBody>("../cube.obj", shader);
+    // std::cout << obj.get()->verts.size() << std::endl;
+
+    Scene scene;
+    scene.addMesh(obj);
+
+
     // SoftBody obj(vertices, indices);
 
 
@@ -146,22 +154,22 @@ int main()
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader.use();
-
         glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 300.0f);
         shader.setMat4("projection", projMat);
 
         glm::mat4 viewMat = glm::lookAt(cameraPos, cameraFront, cameraUp);
         shader.setMat4("view", viewMat);
 
-        glm::mat4 modelMat = glm::mat4(1.0f);
-        shader.setMat4("model", modelMat);
-
         float dt = glfwGetTime() - lastFrameTime;
 
 
-        obj.draw();
-        obj.simulateTimeStep(1.0/targetFPS);
+        // obj.get()->simulateTimeStep(1.0/targetFPS);
+        // obj.get()->draw();
+        scene.simulatePhysics(1.0/targetFPS);
+        scene.drawScene();
+        
+        // obj.simulateTimeStep(1.0/targetFPS);
+        // obj.draw();
 
 
         lastFrameTime = glfwGetTime();
