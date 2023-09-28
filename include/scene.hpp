@@ -3,31 +3,32 @@
 
 
 
+namespace gra{
+    class Scene {
+        public:
 
-class Scene {
-    public:
+        std::vector<std::shared_ptr<RigidBody> > meshes;
 
-    std::vector<std::shared_ptr<PhysicalObject> > meshes;
+        Scene(){
 
-    Scene(){
-
-    }
-
-    void drawScene(){
-        for(const auto& it: meshes){
-            it.get()->draw();
         }
-    }
 
-    void simulatePhysics(float dt){
-        for(const auto& it: meshes){
-            it.get()->simulateTimeStep(dt);
+        void drawScene(){
+            for(const auto& it: meshes){
+                it.get()->draw();
+            }
         }
-    }
 
-    void addMesh(std::shared_ptr<PhysicalObject> mesh){
-        meshes.push_back(mesh);
-    }
+        void simulatePhysics(float dt){
+            for(const auto& it: meshes){
+                it.get()->simulateTimeStep(dt);
+            }
+        }
+
+        void addMesh(std::shared_ptr<RigidBody> mesh){
+            meshes.push_back(mesh);
+        }
 
 
-};
+    };
+}

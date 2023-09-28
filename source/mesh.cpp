@@ -11,6 +11,8 @@
 #include <glm/common.hpp>
 #include <cassert>
 
+using namespace gra;
+
 void distanceConstraintSolve(glm::vec3& x1, glm::vec3& x2, float& lagrange, float compliance, float m, float l0, float dt){
     
     glm::vec3 dir = x1 - x2;
@@ -122,6 +124,13 @@ Mesh::Mesh(const char* filename, Shader &shader) {
 
     numOfTrians = triangleArr.size();
     numOfVerts = verts.size();
+
+    center = v3(0.0);
+    for(int i = 0; i < numOfVerts; i++){
+        center += verts[i].pos;
+    }
+
+    center /= numOfVerts;
 
     shaderProgram = &shader;
 
