@@ -8,7 +8,8 @@
 #include "RigidBody.hpp"
 #include "scene.hpp"
 #include "CollisionDetection.hpp"
-#include "gjkSimplex.hpp"
+#include "gjk.hpp"
+#include "Shape.hpp"
 
 
 void testheader();

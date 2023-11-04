@@ -92,6 +92,11 @@
         "future": "cpp",
         "scoped_allocator": "cpp",
         "valarray": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "locale": "cpp",
+        "version": "cpp",
+        "core": "cpp",
+        "geometry": "cpp",
+        "*.txx": "cpp"
     }
 }

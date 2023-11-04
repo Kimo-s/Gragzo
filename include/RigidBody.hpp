@@ -1,6 +1,7 @@
 #pragma once
 #include "mesh.hpp"
 #include <glm/gtc/quaternion.hpp>
+#include "Shape.hpp"
 
 
 namespace gra{
@@ -9,6 +10,10 @@ namespace gra{
         using Ptr = std::shared_ptr<RigidBody>;
         using m3 = glm::mat3;
         using v3 = glm::vec3;
+
+        bool isStatic = false;
+        Shape* shape;
+
 
         float mass;
         m3 Ibody, Ibodyinv;
@@ -35,15 +40,9 @@ namespace gra{
 
         void simulateTimeStep(float dt) override;
 
-        // glm::vec3 support(glm::vec3 direction) override{
-        //     glm::vec3 v = modelMat*glm::vec4(verts[0].pos,1.0);
-        //     for(int i = 1; i < numOfVerts; i++){
-        //         if(glm::dot(verts[i].pos, direction) > glm::dot(v, direction)){
-        //             v = modelMat*glm::vec4(verts[i].pos,1.0);
-        //         }
-        //     }
-        //     return v;
-        // }
+        void applyForce(v3 force){
+            this->F += force;
+        }
 
         float calcuateTriangleVolume(v3 p1, v3 p2, v3 p3){
             float v321 = p3.x*p2.y*p1.z;
@@ -77,7 +76,11 @@ namespace gra{
             return centerOfMass/volume;
         }
 
-        m3 claculateInertia(v3 centerOfMass){
+        static float signedTetrahedronVolume(v3 a, v3 b, v3 c){
+            return glm::dot(a, glm::cross(b,c))/6.0f;
+        }
+
+        m3 claculateInertia(v3 centerOfMass, float density){
             float volume = 0;
             v3 diag(0.0f);
             v3 offd(0.0f);
@@ -112,10 +115,12 @@ namespace gra{
                     -offd.y        , -offd.x      , diag.x+diag.y );
         }
 
-        static float signedTetrahedronVolume(v3 a, v3 b, v3 c){
-            return glm::dot(a, glm::cross(b,c))/6.0f;
-        }
 
+        glm::vec3 support(glm::vec3 direction) override {
+            direction = glm::transpose(glm::mat3_cast(q)) * direction;
+            glm::vec4 v = modelMat * glm::vec4(this->shape->support(direction), 1.0f);
+            return glm::vec3(v.x,v.y,v.z);
+        }
 
     };
 

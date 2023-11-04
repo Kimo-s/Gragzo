@@ -49,6 +49,22 @@ void jointDistanceConstraint(SoftBody& obj, float dt, int solverIterations, floa
 
 }
 
+v3 findAverageNormal(std::vector<Triangle>& trians, std::vector<Vertex> verts, size_t vertex_ind){
+
+    v3 normal(0.0f);
+    int numberOfTrians = 0;
+
+    for(int i = 0; i < trians.size(); i++){
+        if(trians[i].inds[0] == vertex_ind || trians[i].inds[1] == vertex_ind || trians[i].inds[2] == vertex_ind){
+            v3 n = glm::normalize(glm::cross(verts[trians[i].inds[1]].pos-verts[trians[i].inds[0]].pos, verts[trians[i].inds[2]].pos-verts[trians[i].inds[0]].pos));
+            normal += n;
+            numberOfTrians += 1;
+        }   
+    }
+
+    return normal/(1.0f*numberOfTrians);
+}
+
 Mesh::Mesh(const char* filename, Shader &shader) {
     // objl::Loader loader;
     // if(!loader.LoadFile(filename)){
@@ -108,8 +124,9 @@ Mesh::Mesh(const char* filename, Shader &shader) {
                 tinyobj::real_t ny = attrib.normals[3*size_t(idx.normal_index)+1];
                 tinyobj::real_t nz = attrib.normals[3*size_t(idx.normal_index)+2];
                 verts[size_t(idx.vertex_index)].normal = glm::vec3(nx, ny, nz);
+                // std::cout << nx << " " << ny << " " << nz << "\n";
             } else {
-                verts[size_t(idx.vertex_index)].normal = glm::vec3(1.0, 0.2, 0.0);
+                verts[size_t(idx.vertex_index)].normal = glm::vec3(0.0, 0.0, 0.0);
             }
 
             verts[size_t(idx.vertex_index)].col = glm::vec3(1.0, 0.0, 0.0);
@@ -119,6 +136,12 @@ Mesh::Mesh(const char* filename, Shader &shader) {
         triangleArr.push_back(trian);
 
         index_offset += fv;
+    }
+
+    for (size_t v = 0; v < attrib.vertices.size()/3; v++) {
+        if(verts[size_t(v)].normal.x == 0.0 && verts[size_t(v)].normal.y == 0.0 && verts[size_t(v)].normal.z == 0.0){
+            verts[v].normal = findAverageNormal(triangleArr, verts, v);
+        }
     }
 
 

@@ -12,26 +12,7 @@ namespace gra{
 
         void initSoftBody();
 
-        SoftBody(std::vector<Vertex>& verts, std::vector<uint>& indices){
-            this->verts = verts;
-            numOfVerts = verts.size();
-
-            numOfTrians = indices.size()/3;
-            std::cout << "numoftrians: " << numOfTrians << "\n";
-            for(int i = 0; i < numOfTrians; i++){  
-                Triangle trian;
-                trian.inds[0] =  indices[i*3];
-                trian.inds[1] =  indices[i*3+1];
-                trian.inds[2] =  indices[i*3+2];
-
-                if(trian.inds[0] >= numOfVerts || trian.inds[1] >= numOfVerts || trian.inds[2] >= numOfVerts){
-                    std::cout << "ERROR: Got index number bigger than number of vertices.\n";
-                }
-                triangleArr.push_back(trian);
-            }
-
-            setupMesh();
-
+        SoftBody(std::vector<Vertex>& verts, std::vector<uint>& indices) : PhysicalObject(verts, indices){
             initSoftBody();
         }
 

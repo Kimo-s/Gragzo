@@ -9,9 +9,9 @@
 
 namespace gra{
     struct Vertex{
-    glm::vec3 pos;
-    glm::vec3 col;
-    glm::vec3 normal;
+        glm::vec3 pos;
+        glm::vec3 col;
+        glm::vec3 normal;
     };
 
 
@@ -47,28 +47,25 @@ namespace gra{
 
         void setupMesh();
 
-        virtual glm::vec3 support(glm::vec3 direction){
-            glm::mat3 rotMat(1.0f);
-            rotMat[0][0] = modelMat[0][0];
-            rotMat[0][1] = modelMat[0][1];
-            rotMat[0][2] = modelMat[0][2];
-            rotMat[1][0] = modelMat[1][0];
-            rotMat[1][1] = modelMat[1][1];
-            rotMat[1][2] = modelMat[1][2];
-            rotMat[2][0] = modelMat[2][0];
-            rotMat[2][1] = modelMat[2][1];
-            rotMat[2][2] = modelMat[2][2];
+        Mesh(std::vector<Vertex>& verts, std::vector<uint>& indices){
+            this->verts = verts;
+            numOfVerts = verts.size();
 
-            direction = glm::inverse(rotMat) * direction;
+            numOfTrians = indices.size()/3;
+            std::cout << "numoftrians: " << numOfTrians << "\n";
+            for(int i = 0; i < numOfTrians; i++){  
+                Triangle trian;
+                trian.inds[0] =  indices[i*3];
+                trian.inds[1] =  indices[i*3+1];
+                trian.inds[2] =  indices[i*3+2];
 
-            glm::vec3 v = verts[0].pos;
-            float maxDot = glm::dot(v, direction);
-            for(int i = 1; i < numOfVerts; i++){
-                if(glm::dot(verts[i].pos, direction) > glm::dot(v, direction)){
-                    v = verts[i].pos;
+                if(trian.inds[0] >= numOfVerts || trian.inds[1] >= numOfVerts || trian.inds[2] >= numOfVerts){
+                    std::cout << "ERROR: Got index number bigger than number of vertices.\n";
                 }
+                triangleArr.push_back(trian);
             }
-            return rotMat * v + center;
+
+            setupMesh();
         }
 
         void draw() {
@@ -85,10 +82,6 @@ namespace gra{
         }
 
         void updateBuffers();
-
-        // uint getVertIndex(Vertex v){
-        //     verts.
-        // }
 
         void printTriangleArray(){
             for(int i = 0; i < numOfTrians; i++){
@@ -108,6 +101,8 @@ namespace gra{
             debugMeshes.push_back(debugMesh);
         }
 
+
+        // Gets a model mat that rotates an object from vector a to match at b and translation to center
         void matchModelMatToVector(glm::vec3 a, glm::vec3 b, glm::vec3 center, float scale){
             b = glm::normalize(b);
             a = glm::normalize(a);
@@ -131,6 +126,18 @@ namespace gra{
             modelMat[3][3] = 1.0f;
         }
 
+        virtual glm::vec3 support(glm::vec3 direction){
+            glm::vec3 v = verts[0].pos;
+            float maxDot = glm::dot(v, direction);
+            for(int i = 0; i < verts.size(); i++){
+                float d = glm::dot(verts[i].pos, direction);
+                if(d >= maxDot){
+                    v = verts[i].pos;
+                    maxDot = d;
+                }
+            }
+            return v;
+        }
 
 
 
@@ -152,8 +159,9 @@ namespace gra{
         public:
         PhysicalObject(){}
         PhysicalObject(const char* filename, Shader& shader) : Mesh(filename, shader){};
+        PhysicalObject(std::vector<Vertex>& verts, std::vector<uint>& indices) : Mesh(verts, indices){
+        }
         // ~PhysicalObject(){}
-
 
         virtual void simulateTimeStep(float dt) = 0;
 

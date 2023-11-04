@@ -17,16 +17,16 @@
 using namespace gra;
 gui_parameters guiParameters;
 
-const unsigned int WIDTH = 800;
-const unsigned int HEIGHT = 600;
+unsigned int WIDTH = 800;
+unsigned int HEIGHT = 600;
 float targetFPS = 1/60.0;
 
-glm::vec3 Position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 Position = glm::vec3(0.0f, 0.0f, 10.0f);
 glm::vec3 Orientation = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
 float speed = 0.1f;
-float sensitivity = 1.0f;
+float sensitivity = 8.0f;
 
 Scene scene;
 gra::CollisionDetector detector;
@@ -47,6 +47,13 @@ void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow *window);
 
+void setColor(std::shared_ptr<Mesh> mesh, v3 col){
+    for(int i = 0; i < mesh->numOfVerts; i++){
+        mesh->verts[i].col = col;
+    }
+    mesh->updateBuffers();
+}
+
 void guiSetup(GLFWwindow* window, ImGuiIO& io){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -56,6 +63,13 @@ void guiSetup(GLFWwindow* window, ImGuiIO& io){
     ImGui::Begin("Controls");
 
     ImGui::SliderFloat("Complaince", &guiParameters.complaince, 0.0f, 3.2f); 
+    ImGui::SliderFloat("Restitution", &guiParameters.restitution, 0.0f, 1.0f); 
+
+    if(ImGui::Button("Freeze All Bodies")){
+        for(int i = 0; i < scene.meshes.size(); i++){
+            scene.meshes[i]->v = v3(0.0);
+        }
+    }
 
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -102,6 +116,8 @@ int main()
     glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
     {
         glViewport(0, 0, width, height);
+        HEIGHT = height;
+        WIDTH = width;
     });
 
     IMGUI_CHECKVERSION();
@@ -132,10 +148,16 @@ int main()
         1, 2, 3    // second triangle
     };
 
-    std::shared_ptr<RigidBody> obj = std::make_shared<RigidBody>("../sphere.obj", *shader);
-    // std::shared_ptr<RigidBody> obj2 = std::make_shared<RigidBody>("../sphere.obj", *shader);
-    obj->x = glm::vec3(0.0,0.0,0.0);
-    // obj2->x = glm::vec3(-2.0,0.0,0.0);
+    std::shared_ptr<RigidBody> obj = std::make_shared<RigidBody>("../cubeplane.obj", *shader);
+    // std::shared_ptr<RigidBody> obj2 = std::make_shared<RigidBody>("../cubemesh.obj", *shader);
+    obj->x = glm::vec3(0.0,-3.0,0.0);
+    // obj2->x = glm::vec3(0.0,2.0,0.0);
+    // obj->isStatic = true;
+    setColor(obj, v3(0.4, 0.3, 0.5)); 
+    // setColor(obj2, v3(0.0, 1.0, 0.5)); 
+    // obj2->x = glm::vec3(0.0,0.0,0.0);
+    // obj2->isStatic = true;
+
 
     scene.addMesh(obj);
     // scene.addMesh(obj2);
@@ -145,13 +167,10 @@ int main()
 
     // SoftBody obj(vertices, indices);
 
-
     glEnable(GL_DEPTH_TEST);
 
-    
 
     // This is the render loop
-    // float curTime = glfwGetTime();
     float lastFrameTime = 0.0f;
     float delta = 0.0f;
     float timeSum = 0.0f;
@@ -183,15 +202,13 @@ int main()
             scene.simulatePhysics(targetFPS);
             scene.drawScene();
 
+            // for(int i = 0; i < scene.meshes.size(); i++){
+            //     scene.meshes[i]->applyForce(glm::vec3(0.0, -9.8, 0.0));
+            // }
+
             detector.detectCollisions();
 
-            // float fps = 1.0/delta;
-            // std::stringstream ss;
-            // ss << "Gragzp (fps:" << fps << ")";
-
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-            // glfwSetWindowTitle(window, ss.str().c_str());
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
@@ -206,61 +223,6 @@ int main()
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    // if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
-    //     leftMouseHeld = false;
-    //     return;
-    // }
-
-    // xpos = static_cast<float>(xpos);
-    // ypos = static_cast<float>(ypos);
-
-
-    // if(leftMouseHeld) {
-    //     leftMouseHeld = false;
-    //     lastX = xpos;
-    //     lastY = ypos;
-    // }
-
-
-    // float xoffset = xpos - lastX;
-    // float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    // lastX = xpos;
-    // lastY = ypos;
-
-    // xoffset *= 0.02;
-    // yoffset *= 0.02;
-
-
-
-    // if(Pitch > 89.0f)
-    //     Pitch = 89.0f;
-    // if(Pitch < -89.0f)
-    //     Pitch = -89.0f;
-
-
-    // Yaw   += xoffset;
-    // Pitch += yoffset;
-
-    // // // make sure that when pitch is out of bounds, screen doesn't get flipped
-    // if (Pitch > 89.0f)
-    //     Pitch = 89.0f;
-    // if (Pitch < -89.0f)
-    //     Pitch = -89.0f;
-
-    // float camposr = glm::length(cameraPos);
-
-    // glm::vec3 direction;
-    // direction.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    // direction.y = sin(glm::radians(Pitch));
-    // direction.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    // cameraFront = glm::normalize(direction);
-
-    // glfwSetCursorPos(window, HEIGHT/2, WIDTH/2);
-
-
-    // glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
-    // cameraUp = glm::normalize(glm::cross(right, cameraFront));
 }
 
 

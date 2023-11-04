@@ -16,8 +16,10 @@ void printVec(glm::vec3 vec){
 
 
 void RigidBody::initRigidBody() {
+    
+    float density = 2.0f;
 
-    mass = 1.0f*calculateVolume();
+    mass = density*calculateVolume();
 
     v3 centerOfMass = calculateCenterOfMass();
     this->center = centerOfMass;
@@ -32,9 +34,13 @@ void RigidBody::initRigidBody() {
 
     F = v3(0.0, 0.0, 0.0);
 
-    Ibody = claculateInertia(centerOfMass);
+    Ibody = claculateInertia(centerOfMass, density);
     Ibodyinv = glm::inverse(Ibody);
     Iinv = Ibodyinv;
+
+
+    
+    this->shape = new Shape(verts);
 
 
     // LArrow = std::make_shared<Mesh>("../cylinder.obj", *shaderProgram);
@@ -45,19 +51,26 @@ void RigidBody::initRigidBody() {
 
 void RigidBody::simulateTimeStep(float dt){
 
-    v += (F/mass)*dt;
-    x += v*dt;
+    if(!isStatic){
+        v += (F/mass)*dt;
+        x += v*dt;
+    
+        if(glm::length(L) >= 1.0e-4f){
+            glm::quat wq = glm::quat(0, omega.x, omega.y, omega.z);
+            q += 0.5f*wq*q*dt;
+            q = glm::normalize(q);
 
-    if(glm::length(L) >= 1.0e-4f){
-        glm::quat wq = glm::quat(0, omega.x, omega.y, omega.z);
-        q += 0.5f*wq*q*dt;
-        q = glm::normalize(q);
+            m3 R = glm::mat3_cast(q);
+            Iinv = R*Ibodyinv*glm::transpose(R);
 
-        m3 R = glm::mat3_cast(q);
-        Iinv = R*Ibodyinv*glm::transpose(R);
-
-        omega = Iinv*L;
+            omega = Iinv*L;
+        }
+    } else {
+        v = v3(0.0f);
+        omega = v3(0.0f);
     }
+
+    this->F = v3(0.0);
 
 
 

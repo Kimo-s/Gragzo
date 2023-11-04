@@ -1,6 +1,5 @@
 #pragma once
-#include <gragzo.hpp>
-
+#include "RigidBody.hpp"
 
 
 namespace gra{
