@@ -1,7 +1,9 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec3 ourColor;
+uniform sampler2D specTex;
+
+in vec2 fragUV;
 in vec3 fragnormal;
 in vec3 camPos;
 in mat4 viewMat;
@@ -36,7 +38,7 @@ void main()
         specular = pow(specAngle, shininess);
     }
 
-    vec3 finalcolor = ourColor +  specColor * specular * lightColor * lightPower / dist + diffuseColor * lambertian * lightColor * lightPower / dist; //+ specColor * specular * lightColor * lightPower / dist;
+    vec3 finalcolor =   texture(specTex, fragUV).xyz * specular * lightColor * lightPower / dist + texture(specTex, fragUV).xyz * lambertian * lightColor * lightPower / dist;
 
     finalcolor = pow(finalcolor, vec3(1.0/screenGamma));
 

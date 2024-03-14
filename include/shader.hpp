@@ -76,6 +76,10 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(this->ID, name), 1, false, glm::value_ptr(mat));
     }
 
+    void setInt(const char *name, int val) {
+        glUniform1f(glGetUniformLocation(this->ID, name), val);
+    }
+
     void use(){
         glUseProgram(ID);
     }

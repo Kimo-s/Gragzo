@@ -19,14 +19,6 @@ namespace gra {
 
         std::vector<std::shared_ptr<RigidBody> > meshes;
 
-
-        void setColor(std::shared_ptr<Mesh> mesh, v3 col){
-            for(int i = 0; i < mesh->numOfVerts; i++){
-                mesh->verts[i].col = col;
-            }
-            mesh->updateBuffers();
-        }
-
         CollisionDetector(){}
 
         CollisionDetector(Scene& scene){

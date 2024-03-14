@@ -20,13 +20,15 @@ void distanceConstraintSolve(glm::vec3& x1, glm::vec3& x2, float& lagrange, floa
 
     float w = 1.0/m;
 
-    float alpha = compliance/(dt*dt);
-    float delta_lagrange = (-c - lagrange * alpha) / (2.0*w + alpha);
-    glm::vec3 v = delta_lagrange * dir / (glm::length(dir) + 1e-5f);
-    lagrange += delta_lagrange;
+    // float alpha = compliance/(dt*dt);
+    // float delta_lagrange = (-c - lagrange * alpha) / (2.0*w + alpha);
+    // glm::vec3 v = delta_lagrange * dir / (glm::length(dir) + 1e-5f);
+    // lagrange += delta_lagrange;
+    glm::vec3 v = dir/glm::length(dir);
+    float wa = (1.0f/w) * c;
 
-    x1 += w*v;
-    x2 += -w*v;
+    x1 += -(compliance)*wa*v;
+    x2 += (compliance)*wa*v;
 }
 
 void jointDistanceConstraint(SoftBody& obj, float dt, int solverIterations, float stif){
@@ -40,7 +42,9 @@ void jointDistanceConstraint(SoftBody& obj, float dt, int solverIterations, floa
             float l0 = itr->second;
             uint x2 = itr->first;
             for(int s = 0; s < solverIterations; s++){
+                // std::cout << "Before: " << obj.verts[x1].pos.x << std::endl;
                 distanceConstraintSolve(obj.verts[x1].pos, obj.verts[x2].pos, lagrange, stif, obj.particalMass, l0, dt);    
+                // std::cout << "After: " << obj.verts[x1].pos.x << std::endl;
             }
 
         }
@@ -97,6 +101,7 @@ Mesh::Mesh(const char* filename, Shader &shader) {
     // numOfVerts = shapes[0].mesh.num_face_vertices.size() * 3;
 
     verts.resize(attrib.vertices.size()/3);
+    renderVerts.resize(shapes[0].mesh.num_face_vertices.size()*3);
 
     // Loop over shapes
     // Loop over faces(polygon)
@@ -124,13 +129,18 @@ Mesh::Mesh(const char* filename, Shader &shader) {
                 tinyobj::real_t ny = attrib.normals[3*size_t(idx.normal_index)+1];
                 tinyobj::real_t nz = attrib.normals[3*size_t(idx.normal_index)+2];
                 verts[size_t(idx.vertex_index)].normal = glm::vec3(nx, ny, nz);
-                // std::cout << nx << " " << ny << " " << nz << "\n";
+                // std::cout << size_t(idx.vertex_index) << " "<< nx << " " << ny << " " << nz << "\n";
             } else {
                 verts[size_t(idx.vertex_index)].normal = glm::vec3(0.0, 0.0, 0.0);
             }
 
-            verts[size_t(idx.vertex_index)].col = glm::vec3(1.0, 0.0, 0.0);
-
+            if(idx.texcoord_index >= 0){
+                tinyobj::real_t tx = attrib.texcoords[2*size_t(idx.texcoord_index)+0];
+                tinyobj::real_t ty = attrib.texcoords[2*size_t(idx.texcoord_index)+1];
+                verts[size_t(idx.vertex_index)].uv = glm::vec2(tx, ty);
+            } else {
+                verts[size_t(idx.vertex_index)].uv = glm::vec2(0.0, 0.0);
+            }
 
         }
         triangleArr.push_back(trian);
@@ -198,7 +208,7 @@ void Mesh::setupMesh(){
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, col)); 
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv)); 
     
     glBindVertexArray(0);
 }
@@ -250,7 +260,7 @@ void SoftBody::initSoftBody() {
 
     // std::cout << " [Number of vertices: " << numOfVerts << "]"
     //           << " [Number of triangles: " << numOfTrians << "]" << std::endl;
-    std::cout << "Loaded soft body edge size: " << edgeConnections[3].size() << "\n";
+    std::cout << "Loaded soft body edge size: " << edgeConnections.size() << "\n";
     // printEdges();
     // printTriangleArray();
     // printVertices();
@@ -260,8 +270,8 @@ void SoftBody::initSoftBody() {
 void SoftBody::simulateTimeStep(float dt) {
     glm::vec3 *prevPos;
     prevPos = new glm::vec3[numOfVerts];
-    int solveriterations = 1;
-    int subiterations = 200;
+    int solveriterations = 8;
+    int subiterations = 1;
     float dts = dt/subiterations;
 
 
@@ -282,7 +292,7 @@ void SoftBody::simulateTimeStep(float dt) {
             //     prevPos[i] = verts[i].pos;
             // }
 
-            if(verts[i].pos.z < -2.0){
+            if(verts[i].pos.z < -3.0){
                 verts[i].pos = prevPos[i];
                 // prevPos[i].z = -2.0;
                 // verts[i].pos.z = -2.0;

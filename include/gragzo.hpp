@@ -10,7 +10,13 @@
 #include "CollisionDetection.hpp"
 #include "gjk.hpp"
 #include "Shape.hpp"
+#include "Camera.h"
 
 
 void testheader();
+
+
+// void printVec3(glm::vec3 vec){
+//     std::cout << vec.x << " " << vec.y << " " << vec.z << std::endl;
+// }
 

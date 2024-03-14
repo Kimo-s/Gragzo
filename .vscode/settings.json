@@ -98,5 +98,7 @@
         "core": "cpp",
         "geometry": "cpp",
         "*.txx": "cpp"
-    }
+    },
+    "C_Cpp.default.compilerPath": "/usr/bin/g++",
+    "cmake.configureOnOpen": false
 }

@@ -6,35 +6,19 @@
 #include <bits/stdc++.h>
 #include <glm/vec3.hpp>
 #include <shader.hpp>
+#include <Texture.hpp>
 
 namespace gra{
     struct Vertex{
         glm::vec3 pos;
-        glm::vec3 col;
         glm::vec3 normal;
+        glm::vec2 uv;
     };
 
 
     struct Triangle{
         uint32_t inds[3];
     };
-
-    struct hash_indicies {
-
-        template<class T1, class T2>
-        size_t operator()(const std::pair<T1, T2>& p) const {
-            auto hash1 = std::hash<T1>{}(p.first);
-            auto hash2 = std::hash<T2>{}(p.second);
-
-            if(hash1 != hash2){
-                return hash1 ^ hash2;
-            }
-
-            return hash1;
-        } 
-
-    };
-
 
     class Mesh {
         public:
@@ -68,9 +52,24 @@ namespace gra{
             setupMesh();
         }
 
+        void setColor(glm::vec4 col){
+            specularTexture = new Texture<unsigned char>(glm::vec4(col.x, col.y, col.z, 1.0));
+        }
+
+        void loadTexture(const char* filepath){
+            specularTexture = new Texture<unsigned char>(filepath);
+        }
+
         void draw() {
             shaderProgram->use();
             shaderProgram->setMat4("model", modelMat);
+
+            if(specularTexture){
+                glActiveTexture(GL_TEXTURE0);
+                shaderProgram->setInt("specTex", 0);
+                glBindTexture(GL_TEXTURE_2D, specularTexture->texture);
+            }
+
 
             glBindVertexArray(VAO);
             glDrawElements(GL_TRIANGLES, numOfTrians*3, GL_UNSIGNED_INT, 0);
@@ -142,12 +141,14 @@ namespace gra{
 
 
         GLuint VAO, VBO, EBO;
+        Texture<unsigned char>* specularTexture;
         Shader *shaderProgram;
         size_t numOfVerts, numOfTrians;
         glm::mat4 modelMat = glm::mat4(1.0f);
         std::vector<Vertex> verts;
         std::vector<Triangle> triangleArr;
-        std::vector<Triangle> connectivity;
+        std::vector<Vertex> renderVerts;
+        std::vector<unsigned int> renderTriangles;
         glm::vec3 center;
         std::vector<std::shared_ptr<Mesh>> debugMeshes;
     };

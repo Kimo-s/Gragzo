@@ -41,14 +41,14 @@ set(CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # set(sources ${SOURCE_DIR}/main.cpp)
 # set(sources ${SOURCE_DIR}/utils.cpp)
-file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} source/*.cpp include/*.hpp include/*.h include/external/imgui/*.h)
+file(GLOB_RECURSE sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} source/*.cpp include/*.hpp include/*.h include/external/imgui/*.h include/external/stb/*.h)
 # file(GLOB_RECURSE includes RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "include/*.h")
 # include_directories(${INCLUDE_DIR})
 
 # cmake_print_variables(sources)
 
 add_executable(${exe_name} ${sources})
-target_include_directories(${exe_name} PUBLIC ${INCLUDE_DIR} PUBLIC ${INCLUDE_DIR}/external ${INCLUDE_DIR}/external/imgui)
+target_include_directories(${exe_name} PUBLIC ${INCLUDE_DIR} PUBLIC ${INCLUDE_DIR}/external ${INCLUDE_DIR}/external/imgui ${INCLUDE_DIR}/external/stb)
 
 
 # Perform dependency linkage

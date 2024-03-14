@@ -12,6 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <Texture.hpp>
 #include <sstream>
 
 using namespace gra;
@@ -35,22 +36,17 @@ Shader* shader;
 
 bool firstClick = true;
 
-bool leftMouseHeld = false;
-
-float Yaw   = -90.0f;
-float Pitch = 0.0f;
-float lastX = WIDTH / 2.0f;
-float lastY = HEIGHT / 2.0f;
+Camera mainCamera(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), WIDTH, HEIGHT, 300.0f, 0.1f, 60.0f);
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow *window);
+void window_size_callback(GLFWwindow* window, int width, int height);
+void processCamera(GLFWwindow *window, Camera* camera);
 
 void setColor(std::shared_ptr<Mesh> mesh, v3 col){
-    for(int i = 0; i < mesh->numOfVerts; i++){
-        mesh->verts[i].col = col;
-    }
+    mesh->specularTexture = new Texture<unsigned char>(glm::vec4(col.x, col.y, col.z, 1.0));
     mesh->updateBuffers();
 }
 
@@ -62,13 +58,17 @@ void guiSetup(GLFWwindow* window, ImGuiIO& io){
 
     ImGui::Begin("Controls");
 
-    ImGui::SliderFloat("Complaince", &guiParameters.complaince, 0.0f, 3.2f); 
+    ImGui::SliderFloat("Complaince", &guiParameters.complaince, 0.0f, 1.0f); 
     ImGui::SliderFloat("Restitution", &guiParameters.restitution, 0.0f, 1.0f); 
 
     if(ImGui::Button("Freeze All Bodies")){
         for(int i = 0; i < scene.meshes.size(); i++){
             scene.meshes[i]->v = v3(0.0);
         }
+    }
+
+    if(ImGui::CollapsingHeader("Camera Settings")){
+        ImGui::SliderFloat("Sensitivity", &mainCamera.rotationSensitivity, 10.0f, 200.0f);
     }
 
 
@@ -100,8 +100,9 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, mouse_scroll_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetWindowSizeCallback(window, window_size_callback);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);;
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);;
 
     // glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 
@@ -135,25 +136,25 @@ int main()
     shader = new Shader("../shaders/vert3d.vs", "../shaders/frag3d.fs");
     
 
-    std::vector<Vertex> vertices = {
-     Vertex{glm::vec3(0.5f,  0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
-     Vertex{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
-     Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
-     Vertex{glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
-     Vertex{glm::vec3(1.0f,  0.5f, 1.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
-    }; 
+    // std::vector<Vertex> vertices = {
+    //  Vertex{glm::vec3(0.5f,  0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+    //  Vertex{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+    //  Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+    //  Vertex{glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+    //  Vertex{glm::vec3(1.0f,  0.5f, 1.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 1.0)},
+    // }; 
 
-    std::vector<uint>  indices = {  // note that we start from 0!
-        0, 1, 3,  // first triangle
-        1, 2, 3    // second triangle
-    };
+    // std::vector<uint>  indices = {  // note that we start from 0!
+    //     0, 1, 3,  // first triangle
+    //     1, 2, 3    // second triangle
+    // };
 
-    std::shared_ptr<RigidBody> obj = std::make_shared<RigidBody>("../cubeplane.obj", *shader);
+    std::shared_ptr<RigidBody> obj = std::make_shared<RigidBody>("../bunny.obj", *shader);
     // std::shared_ptr<RigidBody> obj2 = std::make_shared<RigidBody>("../cubemesh.obj", *shader);
     obj->x = glm::vec3(0.0,-3.0,0.0);
+    obj->setColor(glm::vec4(0.1, 0.3, 0.6, 1.0));
     // obj2->x = glm::vec3(0.0,2.0,0.0);
     // obj->isStatic = true;
-    setColor(obj, v3(0.4, 0.3, 0.5)); 
     // setColor(obj2, v3(0.0, 1.0, 0.5)); 
     // obj2->x = glm::vec3(0.0,0.0,0.0);
     // obj2->isStatic = true;
@@ -165,7 +166,8 @@ int main()
     detector.addScene(scene);
 
 
-    // SoftBody obj(vertices, indices);
+
+    // SoftBody softobj("../sphere.obj", *shader);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -188,15 +190,9 @@ int main()
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            processInput(window);
-
-
-            glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 300.0f);
-            shader->setMat4("projection", projMat);
-
-            glm::mat4 viewMat = glm::lookAt(Position, Position + Orientation, Up);
-            shader->setMat4("view", viewMat);
-
+            mainCamera.proccessWindow(window);
+            mainCamera.setShaderValues(shader);
+        
             timeSum = 0;
             
             scene.simulatePhysics(targetFPS);
@@ -205,7 +201,6 @@ int main()
             // for(int i = 0; i < scene.meshes.size(); i++){
             //     scene.meshes[i]->applyForce(glm::vec3(0.0, -9.8, 0.0));
             // }
-
             detector.detectCollisions();
 
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -221,109 +216,61 @@ int main()
     return 0;
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
+
+
+void processCamera(GLFWwindow *window, Camera* camera){
+
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+
+        double newMouseX, newMouseY;
+        glfwGetCursorPos(window, &newMouseX, &newMouseY);
+        if(firstClick == false){
+            firstClick = true;
+            float normalMouseX = (newMouseX - camera->height/2) / camera->height;
+            float normalMouseY = (newMouseY - camera->width/2) / camera->width;
+            camera->curScreenX = normalMouseX;
+            camera->curScreenY = normalMouseY;
+        }
+        camera->rotAroundCenter(newMouseX, newMouseY);
+
+    } else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
+        if(firstClick == true){
+            firstClick = false;
+        }
+    }
+
+    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
+        camera->worldPosition.y += 0.01f;
+    }
+
 }
 
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
 
+    // std::cout << xpos << std::endl;
+}
+
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
+    mainCamera.width = width;
+    mainCamera.height = height;
+}
 
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     Position = (glm::length(Position) + static_cast<float>(-yoffset) * 0.4f) * glm::normalize(Position);
 }
 
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-	{
-		Position += speed * Orientation;
-	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-	{
-		Position += speed * -glm::normalize(glm::cross(Orientation, Up));
-	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-	{
-		Position += speed * -Orientation;
-	}
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-	{
-		Position += speed * glm::normalize(glm::cross(Orientation, Up));
-	}
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-	{
-		Position += speed * Up;
-	}
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-	{
-		Position += speed * -Up;
-	}
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-	{
-		speed = 0.4f;
-	}
-	else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
-	{
-		speed = 0.1f;
-	}
-
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		// Hides mouse cursor
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-
-		// Prevents camera from jumping on the first click
-		if (firstClick)
-		{
-			glfwSetCursorPos(window, (WIDTH / 2), (HEIGHT / 2));
-			firstClick = false;
-		}
-
-		// Stores the coordinates of the cursor
-		double mouseX;
-		double mouseY;
-		// Fetches the coordinates of the cursor
-		glfwGetCursorPos(window, &mouseX, &mouseY);
-
-		// Normalizes and shifts the coordinates of the cursor such that they begin in the middle of the screen
-		// and then "transforms" them into degrees 
-		float rotX = sensitivity * (float)(mouseY - (HEIGHT / 2)) / HEIGHT;
-		float rotY = sensitivity * (float)(mouseX - (WIDTH / 2)) / WIDTH;
-
-		// Calculates upcoming vertical change in the Orientation
-		glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(-rotX), glm::normalize(glm::cross(Orientation, Up)));
-
-		// Decides whether or not the next vertical Orientation is legal or not
-		if (abs(glm::angle(newOrientation, Up) - glm::radians(90.0f)) <= glm::radians(85.0f))
-		{
-			Orientation = newOrientation;
-		}
-
-		// Rotates the Orientation left and right
-		Orientation = glm::rotate(Orientation, glm::radians(-rotY), Up);
-
-		// Sets mouse cursor to the middle of the screen so that it doesn't end up roaming around
-		glfwSetCursorPos(window, (WIDTH / 2), (HEIGHT / 2));
-	}
-	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
-	{
-		// Unhides cursor since camera is not looking around anymore
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		// Makes sure the next time the camera looks around it doesn't jump
-		firstClick = true;
-	}
-}
-
-
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods){
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
 
         std::shared_ptr<RigidBody> obj2 = std::make_shared<RigidBody>("../sphere.obj", *shader);
-        obj2->x = Position + glm::normalize(Orientation);
-        obj2->v = glm::normalize(Orientation)*8.0f;
+        obj2->x = mainCamera.worldPosition + glm::normalize(mainCamera.viewDirection);
+        obj2->v = glm::normalize(mainCamera.viewDirection)*8.0f;
+        setColor(obj2, v3(0.1, 0.8, 0.9)); 
         scene.addMesh(obj2);
 
         detector.addScene(scene);

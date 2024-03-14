@@ -1,9 +1,9 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec3 aColor;
+layout (location = 2) in vec2 uvCoords;
 
-out vec3 ourColor;
+out vec2 fragUV;
 out vec3 fragnormal;
 out vec3 camPos;
 out mat4 viewMat;
@@ -23,6 +23,6 @@ void main()
 
     viewMat = view;
 
-    ourColor = aColor;
+    fragUV = uvCoords;
     fragnormal = vec3(transpose(inverse(view * model)) * vec4(normal,0.0));
 }
